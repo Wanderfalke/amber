@@ -45,9 +45,10 @@ module Amber::Controller
       it "renders a form with a csrf tag" do
         request = HTTP::Request.new("GET", "/?test=test")
         context = create_context(request)
+        csrf_token = Amber::Pipe::CSRF.token(context)
         html_output = <<-HTML
         <form action="/posts" method="post">
-          <input type="hidden" name="_csrf" value="#{Amber::Pipe::CSRF.new.token(context)}" />
+          <input type="hidden" name="_csrf" value="#{csrf_token}" />
           <div class="form-group">
             <input class="form-control" type="text" name="title" placeholder="Title" value="hey you">
           </div>
