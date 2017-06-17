@@ -19,8 +19,12 @@ module Amber
     abstract struct ClientSocket
       @@channels = [] of NamedTuple(path: String, channel: Channel)
 
+      MAX_SOCKET_IDLE_TIME = 11.minutes
+
       property id : UInt64
       property socket : HTTP::WebSocket
+      private property pongs = Array(Time).new
+      private property pings = Array(Time).new
 
       # Add a channel for this socket to listen, publish to
       def self.channel(channel_path, ch)
@@ -40,7 +44,8 @@ module Amber
         @id = @socket.object_id
         @subscription_manager = SubscriptionManager.new
         @socket.on_pong do |msg|
-          # TODO: setup heartbeat
+          @pongs.push(Time.now)
+          @pongs.delete_at(0) if @pongs.size > 3
         end
       end
 
@@ -51,11 +56,31 @@ module Amber
 
       # Sends ping opcode to client : https://tools.ietf.org/html/rfc6455#section-5.5.2
       def beat
-        spawn { @socket.ping }
+        spawn do
+          @socket.ping
+          check_alive
+        end
       end
 
       def subscribed_to_topic?(topic)
         @subscription_manager.subscriptions.keys.includes?(topic.to_s)
+      end
+
+      protected def check_alive
+        @pings.push(Time.now)
+        @pings.delete_at(0) if @pings.size > 3
+        return unless @pings.size == 3
+
+        # disconnect if no pongs have been received
+        #  or no pongs have been received beyond the threshold time
+        if @pongs.empty? || (@pings.last - @pongs.first) > MAX_SOCKET_IDLE_TIME
+          disconnect!
+        end
+      end
+
+      protected def disconnect!
+        ClientSockets.remove_client_socket(self)
+        self.socket.close
       end
 
       protected def authorized?

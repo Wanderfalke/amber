@@ -7,7 +7,7 @@ module Amber
       extend self
       @@client_sockets = Hash(UInt64, ClientSocket).new
       @@heartbeat_started = false
-      BEAT_INTERVAL = 1.minute
+      BEAT_INTERVAL = 5.minutes
 
       def add_client_socket(client_socket)
         @@client_sockets[client_socket.id] = client_socket
@@ -34,11 +34,12 @@ module Amber
       end
 
       private def heartbeat
+        @@heartbeat_started = true
         spawn do
-          @@heartbeat_started = true
-          sleep BEAT_INTERVAL
-          @@client_sockets.each_value(&.beat)
-          heartbeat
+          loop do
+            sleep BEAT_INTERVAL
+            @@client_sockets.each_value { |client_socket| spawn { client_socket.beat } }
+          end
         end
       end
     end
