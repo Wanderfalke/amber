@@ -39,7 +39,7 @@ module Amber
       end
 
       def self.metatag(context)
-        %Q(<meta name="#{name}" content="#{token(context)}" />)
+        %Q(<meta name="#{HEADER_KEY}" content="#{token(context)}" />)
       end
     end
   end
