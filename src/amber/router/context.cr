@@ -11,8 +11,8 @@ class HTTP::Server::Context
 
   property route : Radix::Result(Amber::Route)
   getter router : Amber::Router::Router
-  getter cookies : Amber::Router::Cookies::Store?
-  getter session : Amber::Router::Session::AbstractStore?
+  setter cookies : Amber::Router::Cookies::Store?
+  setter session : Amber::Router::Session::AbstractStore?
 
   def initialize(@request : HTTP::Request, @response : HTTP::Server::Response)
     @router = Amber::Router::Router.instance
